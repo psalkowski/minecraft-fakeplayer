@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import io.github.hello09x.fakeplayer.core.Main;
 import io.github.hello09x.fakeplayer.core.config.FakeplayerConfig;
 import io.github.hello09x.fakeplayer.core.manager.FakeplayerManager;
+import io.github.hello09x.fakeplayer.core.repository.FakeplayerProfileRepository;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,11 +23,13 @@ public class FakeplayerLifecycleListener implements Listener {
 
     private final FakeplayerManager manager;
     private final FakeplayerConfig config;
+    private final FakeplayerProfileRepository profileRepository;
 
     @Inject
-    public FakeplayerLifecycleListener(FakeplayerManager manager, FakeplayerConfig config) {
+    public FakeplayerLifecycleListener(FakeplayerManager manager, FakeplayerConfig config, FakeplayerProfileRepository profileRepository) {
         this.manager = manager;
         this.config = config;
+        this.profileRepository = profileRepository;
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -48,6 +51,12 @@ public class FakeplayerLifecycleListener implements Listener {
             return;
         }
 
+        // Save location for auto-respawn on server restart
+        if (config.isAutoRespawn()) {
+            profileRepository.saveLastLocation(player.getUniqueId(), player.getLocation());
+            profileRepository.setShouldRespawn(player.getUniqueId(), true);
+        }
+
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             if (player.isOnline()) {
                 manager.dispatchCommands(player, config.getAfterSpawnCommands());
@@ -63,6 +72,12 @@ public class FakeplayerLifecycleListener implements Listener {
         if (this.manager.isNotFake(player)) {
             // Not a fake player
             return;
+        }
+
+        // Save location for auto-respawn on server restart
+        if (config.isAutoRespawn()) {
+            profileRepository.saveLastLocation(player.getUniqueId(), player.getLocation());
+            profileRepository.setShouldRespawn(player.getUniqueId(), true);
         }
 
         manager.dispatchCommands(player, config.getPostQuitCommands());

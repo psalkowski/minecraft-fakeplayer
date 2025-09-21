@@ -24,6 +24,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.metadata.MetadataValue;
 import org.jetbrains.annotations.NotNull;
@@ -198,6 +199,23 @@ public class FakeplayerListener implements Listener {
                 .ifPresent(player::setHealth);
         event.setCancelled(true);
         manager.remove(event.getPlayer().getName(), event.deathMessage());
+    }
+
+    /**
+     * Track teleport location for auto-respawn
+     */
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onTeleport(@NotNull PlayerTeleportEvent event) {
+        var player = event.getPlayer();
+        if (manager.isNotFake(player)) {
+            return;
+        }
+
+        // Save new location for auto-respawn
+        if (config.isAutoRespawn()) {
+            profileRepository.saveLastLocation(player.getUniqueId(), event.getTo());
+            profileRepository.setShouldRespawn(player.getUniqueId(), true);
+        }
     }
 
     /**
