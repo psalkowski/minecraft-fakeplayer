@@ -16,11 +16,15 @@ public class ReloadCommand extends AbstractCommand {
 
     private final FakeplayerConfig config;
 
-    private final PluginTranslator translator;
+    private PluginTranslator translator;
 
     @Inject
-    public ReloadCommand(FakeplayerConfig config, PluginTranslator translator) {
+    public ReloadCommand(FakeplayerConfig config) {
         this.config = config;
+    }
+
+    @Inject(optional = true)
+    public void setTranslator(PluginTranslator translator) {
         this.translator = translator;
     }
 
@@ -33,10 +37,14 @@ public class ReloadCommand extends AbstractCommand {
     }
 
     public void reloadTranslation(@NotNull CommandSender sender, @NotNull CommandArguments args) {
-        translator.reload();
-        sender.sendMessage(translatable(
-                "fakeplayer.command.generic.success"
-        ));
+        if (translator != null) {
+            translator.reload();
+            sender.sendMessage(translatable(
+                    "fakeplayer.command.generic.success"
+            ));
+        } else {
+            sender.sendMessage(translatable("fakeplayer.command.generic.success", GRAY));
+        }
     }
 
 }

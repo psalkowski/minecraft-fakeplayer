@@ -46,10 +46,11 @@ public final class Main extends JavaPlugin {
         injector = Guice.createInjector(
                 new FakeplayerModule(),
                 new CommandModule(),
-                new DatabaseModule(),
-                new TranslationModule(new TranslationConfig(
-                        "message/message",
-                        TranslatorUtils.getDefaultLocale(Main.getInstance())))
+                new DatabaseModule()
+                // Disabled TranslationModule to fix Paper 1.21.8 StackOverflowError
+                // new TranslationModule(new TranslationConfig(
+                //         "message/message",
+                //         TranslatorUtils.getDefaultLocale(Main.getInstance())))
         );
 
         injector.getInstance(CommandRegistry.class).register();

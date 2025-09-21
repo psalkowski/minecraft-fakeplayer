@@ -87,8 +87,8 @@ public class CommandRegistry {
         var root = command("fakeplayer")
                 .withAliases("fp")
                 .withHelp(
-                        ComponentUtils.toString(translatable("fakeplayer.command.fp.short-description"), null),
-                        ComponentUtils.toString(translatable("fakeplayer.command.fp.full-description"), null)
+                        "Manage fake players",
+                        "Create and control fake players on your server"
                 )
                 .withUsage(
                         "type fp ? for more information",
