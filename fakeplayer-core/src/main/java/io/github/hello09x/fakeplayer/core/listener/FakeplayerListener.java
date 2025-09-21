@@ -9,6 +9,8 @@ import io.github.hello09x.fakeplayer.core.Main;
 import io.github.hello09x.fakeplayer.core.config.FakeplayerConfig;
 import io.github.hello09x.fakeplayer.core.constant.MetadataKeys;
 import io.github.hello09x.fakeplayer.core.manager.FakeplayerManager;
+import io.github.hello09x.fakeplayer.core.manager.FakeplayerDeathTracker;
+import io.github.hello09x.fakeplayer.core.manager.FakeplayerRespawnManager;
 import io.github.hello09x.fakeplayer.core.repository.FakeplayerProfileRepository;
 import io.github.hello09x.fakeplayer.core.repository.UsedIdRepository;
 import org.bukkit.Bukkit;
@@ -43,13 +45,21 @@ public class FakeplayerListener implements Listener {
     private final UsedIdRepository usedIdRepository;
     private final FakeplayerProfileRepository profileRepository;
     private final FakeplayerConfig config;
+    private final FakeplayerDeathTracker deathTracker;
+    private FakeplayerRespawnManager respawnManager; // Will be injected later
 
     @Inject
-    public FakeplayerListener(FakeplayerManager manager, UsedIdRepository usedIdRepository, FakeplayerProfileRepository profileRepository, FakeplayerConfig config) {
+    public FakeplayerListener(FakeplayerManager manager, UsedIdRepository usedIdRepository, FakeplayerProfileRepository profileRepository, FakeplayerConfig config, FakeplayerDeathTracker deathTracker) {
         this.manager = manager;
         this.usedIdRepository = usedIdRepository;
         this.profileRepository = profileRepository;
         this.config = config;
+        this.deathTracker = deathTracker;
+    }
+
+    @Inject(optional = true)
+    public void setRespawnManager(FakeplayerRespawnManager respawnManager) {
+        this.respawnManager = respawnManager;
     }
 
     /**
@@ -113,7 +123,7 @@ public class FakeplayerListener implements Listener {
     }
 
     /**
-     * 死亡退出游戏
+     * 死亡退出游戏 - Enhanced with Smart Auto-Respawn
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void kickOrNotifyOnDead(@NotNull PlayerDeathEvent event) {
@@ -121,6 +131,54 @@ public class FakeplayerListener implements Listener {
         if (manager.isNotFake(player)) {
             return;
         }
+
+        // Save location before death for respawn
+        profileRepository.saveLastLocation(player.getUniqueId(), player.getLocation());
+
+        // Analyze death cause
+        FakeplayerDeathTracker.DeathReason reason = deathTracker.analyzeDeathReason(event);
+        deathTracker.recordDeath(player.getUniqueId(), reason);
+        profileRepository.setDeathReason(player.getUniqueId(), reason);
+
+        // Check if should auto-respawn
+        boolean shouldAutoRespawn = config.isAutoRespawn() &&
+                                   deathTracker.shouldAutoRespawn(player.getUniqueId(), reason);
+
+        // Store respawn eligibility in database
+        profileRepository.setShouldRespawn(player.getUniqueId(), shouldAutoRespawn);
+
+        log.info(String.format("Fake player %s died from %s - Auto-respawn: %s",
+                player.getName(), reason, shouldAutoRespawn));
+
+        // If auto-respawn is enabled and appropriate, schedule respawn
+        if (shouldAutoRespawn && respawnManager != null) {
+            // Still remove the player but mark for respawn
+            event.setCancelled(true);
+
+            // Restore health for sync plugins
+            Optional.ofNullable(player.getAttribute(Attribute.MAX_HEALTH))
+                    .map(AttributeInstance::getValue)
+                    .ifPresent(player::setHealth);
+
+            // Remove player but schedule respawn
+            manager.remove(player.getName(), event.deathMessage());
+
+            // Schedule respawn after delay
+            respawnManager.scheduleRespawn(player.getName(), player.getUniqueId(), reason);
+
+            // Notify creator about auto-respawn
+            var creator = manager.getCreator(player);
+            if (creator != null) {
+                creator.sendMessage(translatable(
+                        "fakeplayer.listener.death.auto-respawn",
+                        text(player.getName(), GOLD),
+                        text(config.getRespawnDelaySeconds() + "s", YELLOW)
+                ).color(GREEN));
+            }
+            return;
+        }
+
+        // Original logic for non-auto-respawn cases
         if (!config.isKickOnDead()) {
             var creator = manager.getCreator(player);
             if (creator != null) {

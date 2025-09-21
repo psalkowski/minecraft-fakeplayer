@@ -171,6 +171,17 @@ public class FakeplayerConfig extends PluginConfig {
 
     private Map<Feature, String> defaultFeatures;
 
+    /**
+     * Smart Auto-Respawn Settings
+     * Fork enhancement for intelligent respawn based on death cause
+     */
+    private boolean autoRespawn;
+    private boolean respawnOnHostileDeath;
+    private boolean respawnOnEnvironmentDeath;
+    private boolean respawnOnCommandKill;
+    private int respawnDelaySeconds;
+    private int respawnCooldownMinutes;
+
     @Inject
     public FakeplayerConfig() {
         super(Main.getInstance());
@@ -216,6 +227,14 @@ public class FakeplayerConfig extends PluginConfig {
         this.debug = file.getBoolean("debug", false);
         this.nameStyleColor = this.getNameStyleColor(file);
         this.nameStyleDecorations = this.getNameStyleDecorations(file);
+
+        // Smart Auto-Respawn configuration
+        this.autoRespawn = file.getBoolean("auto-respawn.enabled", false);
+        this.respawnOnHostileDeath = file.getBoolean("auto-respawn.respawn-on-hostile-death", true);
+        this.respawnOnEnvironmentDeath = file.getBoolean("auto-respawn.respawn-on-environment-death", true);
+        this.respawnOnCommandKill = file.getBoolean("auto-respawn.respawn-on-command-kill", false);
+        this.respawnDelaySeconds = file.getInt("auto-respawn.respawn-delay", 5);
+        this.respawnCooldownMinutes = file.getInt("auto-respawn.respawn-cooldown", 1);
 
         if (this.isConfigFileOutOfDate()) {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {

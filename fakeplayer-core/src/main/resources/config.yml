@@ -291,3 +291,35 @@ default-features:
 # 检测更新
 # 仅仅是检测, 并不会帮你下载
 check-for-updates: true
+
+
+# =========================================================================================================
+# Smart Auto-Respawn Settings (Fork Enhancement)
+# 智能自动重生设置（Fork 增强功能）
+# =========================================================================================================
+# These settings allow fake players to automatically respawn based on death cause
+# 这些设置允许假人根据死亡原因自动重生
+auto-respawn:
+  # Enable auto-respawn functionality
+  # 启用自动重生功能
+  enabled: false
+
+  # Respawn if killed by hostile mobs (zombies, skeletons, creepers, etc)
+  # 如果被敌对生物杀死则重生（僵尸、骷髅、苦力怕等）
+  respawn-on-hostile-death: true
+
+  # Respawn if died from environment (fall damage, lava, drowning, etc)
+  # 如果因环境死亡则重生（摔落、岩浆、溺水等）
+  respawn-on-environment-death: true
+
+  # Respawn if killed using /fp kill command (not recommended)
+  # 如果使用 /fp kill 命令杀死则重生（不推荐）
+  respawn-on-command-kill: false
+
+  # Delay in seconds before respawning
+  # 重生前的延迟（秒）
+  respawn-delay: 5
+
+  # Cooldown in minutes before same player can auto-respawn again
+  # 同一玩家再次自动重生前的冷却时间（分钟）
+  respawn-cooldown: 1
